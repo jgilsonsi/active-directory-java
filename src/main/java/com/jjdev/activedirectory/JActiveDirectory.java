@@ -23,43 +23,25 @@ public class JActiveDirectory {
     private JActiveDirectory() {
     }
 
-    public static LdapContext getConnection(String username, String password, String domainName, String serverName) throws NamingException {
+    public static LdapContext getConnection(String userName, String password, String serverAddress) {
 
-        if (domainName == null) {
-            try {
-                String fqdn = java.net.InetAddress.getLocalHost().getCanonicalHostName();
-                if (fqdn.split("\\.").length > 1) {
-                    domainName = fqdn.substring(fqdn.indexOf(".") + 1);
-                }
-            } catch (java.net.UnknownHostException e) {
-            }
-        }
-
-        System.out.println("\nAuthenticating " + username + "@" + domainName + " through " + serverName);
-        if (password != null) {
-            password = password.trim();
-            if (password.length() == 0) {
-                password = null;
-            }
-        }
+        System.out.println("\nAuthenticating " + userName + "@" + serverAddress);
 
         Properties props = new Properties();
         props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         props.put(Context.SECURITY_AUTHENTICATION, "simple");
-        props.put(Context.SECURITY_PRINCIPAL, username);
+        props.put(Context.SECURITY_PRINCIPAL, userName);
         props.put(Context.SECURITY_CREDENTIALS, password);
+        props.put(Context.PROVIDER_URL, "ldap://" + serverAddress + "/");
 
-        String ldapURL = "ldap://" + ((serverName == null) ? domainName : serverName + "." + domainName) + '/';
-        props.put(Context.PROVIDER_URL, ldapURL);
         try {
             return new InitialLdapContext(props, null);
         } catch (javax.naming.CommunicationException e) {
-            System.out.println(e);
-            throw new NamingException("Failed to connect to " + domainName + ((serverName == null) ? "" : " through " + serverName));
+            System.out.println("Failed to connect to " + serverAddress + "\n" + e);
         } catch (NamingException e) {
-            System.out.println(e);
-            throw new NamingException("Failed to authenticate " + username + "@" + domainName + ((serverName == null) ? "" : " through " + serverName));
+            System.out.println("Failed to authenticate " + userName + "@" + serverAddress + "\n" + e);
         }
+        return null;
     }
 
     public static JUser getUser(LdapContext context, String domainName, String userName) {
@@ -150,7 +132,8 @@ public class JActiveDirectory {
 
         @Override
         public String toString() {
-            return "JUser{" + "distinguishedName=" + distinguishedName + ", userPrincipal=" + userPrincipal + ", commonName=" + commonName + ", email=" + email + '}';
+            return "distinguishedName=" + distinguishedName + "\nuserPrincipal=" + userPrincipal
+                    + "\ncommonName=" + commonName + "\nemail=" + email;
         }
 
     }
